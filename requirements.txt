@@ -1,3 +1,5 @@
+streamlit
+stockfish
 python-chess
 numpy
 cairosvg
