@@ -9,9 +9,12 @@ from PIL import Image
 import io
 import math
 import pygame
+import shutil
 
 # CONFIGURATION DU CHEMIN DE STOCKFISH (À MODIFIER)
-STOCKFISH_PATH = r"D:\Tools\stockfish\stockfish-windows-x86-64-avx2.exe"
+STOCKFISH_PATH = shutil.which("stockfish")
+if not STOCKFISH_PATH:
+    raise FileNotFoundError("❌ Stockfish non trouvé. Vérifie que Stockfish est installé sur Streamlit Cloud.")
 
 class ChessAI:
     def __init__(self):
