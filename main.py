@@ -10,6 +10,7 @@ import io
 import math
 import pygame
 import shutil
+import requests
 
 # CONFIGURATION DU CHEMIN DE STOCKFISH (À MODIFIER)
 STOCKFISH_PATH = shutil.which("stockfish")
@@ -59,10 +60,18 @@ class ChessAI:
         else:
             return max(legal_moves, key=lambda move: self.q_table[state][move.uci()])  # Exploitation
 
-    def get_stockfish_move(self, board):
-        """Stockfish joue son coup optimal"""
-        result = self.stockfish.play(board, chess.engine.Limit(time=0.5))  # Temps limité à 0.5s
-        return result.move
+def get_stockfish_move(board):
+    """Obtenir un coup depuis une API Stockfish externe"""
+    url = "https://lichess.org/api/cloud-eval"  # API Cloud Lichess (basée sur Stockfish)
+    fen = board.fen()
+    params = {"fen": fen}
+
+    response = requests.get(url, params=params)
+    if response.status_code == 200:
+        data = response.json()
+        best_move = data.get("pvs", [{}])[0].get("moves", "").split()[0]
+        return best_move if best_move else None
+    return None
 
     def get_intermediate_reward(self, board, move):
         """Donne une récompense intermédiaire pour encourager les bons coups"""
@@ -223,8 +232,17 @@ class ChessAI:
                     break  # Arrêter la partie si elle est finie
 
                 # Coup de Stockfish
-                stockfish_move = self.get_stockfish_move(board)
-                board.push(stockfish_move)
+                stockfish_move_uci = get_stockfish_move(board)  # Utilise l'API Lichess
+                if stockfish_move_uci:
+                    stockfish_move = chess.Move.from_uci(stockfish_move_uci)
+                    if stockfish_move in board.legal_moves:  # Vérifie que le coup est valide
+                        board.push(stockfish_move)
+                        print(f"♟️ Stockfish joue : {stockfish_move_uci} ({stockfish_move})")
+                    else:
+                        print("❌ Coup illégal détecté, Stockfish n'a pas joué.")
+                else:
+                    print("⚠️ Impossible d'obtenir un coup de Stockfish.")
+
                 print(f"♟️ Stockfish joue : {stockfish_move.uci()} ({stockfish_move})")
                 self.display_board(board)  # Affichage après le coup de Stockfish
 
